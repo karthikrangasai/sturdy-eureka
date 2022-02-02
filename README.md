@@ -1,6 +1,5 @@
 # Study Eureka
 
-
 - **install.sh** should install the requirements, download the dataset, and run the preprocessing beforehand
   - before downloading the kaggle dataset you need fist enter competition and accept rules
   - to download it you need to export you credentials (username/key) to a file or use env. variables (`KAGGLE_USERNAME`, `KAGGLE_KEY`)

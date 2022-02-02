@@ -81,7 +81,7 @@ if __name__ == "__main__":
         f.write(json.dumps(best_params))
 
     trials_df: pd.DataFrame = study.trials_dataframe()
-    trials_df.to_csv(path=os.path.join(STUDY_PATH, f"all_trials.csv"))
+    trials_df.to_csv(path=os.path.join(STUDY_PATH, "all_trials.csv"))
 
     # Save the plots of the Study
     if optuna.visualization.is_available():

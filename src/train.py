@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     if args.study_name is not None:
         STUDY_PATH = os.path.join(OUTPUT_FOLDER_PATH, f"{args.study_name}")
-        with open(os.path.join(STUDY_PATH, "best_params.json"), "r") as f:
+        with open(os.path.join(STUDY_PATH, "best_params.json")) as f:
             best_params = json.load(f)
 
     train_args.update(best_params)
