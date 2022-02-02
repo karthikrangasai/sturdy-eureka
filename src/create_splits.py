@@ -1,7 +1,5 @@
-import os
 import pandas as pd
 
-from typing import Union
 from src import INPUT_DATA_PATH, TRAIN_DATA_PATH, VAL_DATA_PATH
 
 

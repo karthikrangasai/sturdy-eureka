@@ -1,29 +1,25 @@
 import gc
-import optuna
+import json
 import os
-import torch
+from argparse import ArgumentParser
+from datetime import datetime
+from functools import partial
+
+import optuna
 import pandas as pd
 import pytorch_lightning as pl
-import wandb
-import plotly
-
-from plotly.graph_objs._figure import Figure
-
-from argparse import ArgumentParser
-from dataclasses import asdict, dataclass
-from functools import partial
+import torch
 from flash import Trainer
 from flash.text import QuestionAnsweringData, QuestionAnsweringTask
-from pytorch_lightning.loggers import WandbLogger
+from plotly.graph_objs._figure import Figure
 
-from src import TRAIN_DATA_PATH, VAL_DATA_PATH, RANDOM_SEED, OUTPUT_FOLDER_PATH
+from src import OUTPUT_FOLDER_PATH, RANDOM_SEED, TRAIN_DATA_PATH, VAL_DATA_PATH
 
 
 # The objective function would look something like this
 def objective(
     trial: optuna.Trial,
     max_epochs: int = 5,
-    unfreeze_epoch: int = 2,
 ):
 
     # A unique set of hyperparameter combination is sampled.
@@ -53,7 +49,7 @@ def objective(
 
     # Train the model for Optuna to understand the current
     # Hyperparameter combination's behaviour.
-    trainer.finetune(model, datamodule, strategy=("freeze_unfreeze", unfreeze_epoch))
+    trainer.fit(model, datamodule)
 
     # The extra step to tell Optuna which value to base the
     # optimization routine on.
@@ -70,20 +66,19 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("-t", "--trials", type=int, default=1, required=False)
     parser.add_argument("-e", "--epochs", type=int, default=5, required=False)
-    parser.add_argument("-u", "--unfreeze_epoch", type=int, default=2, required=False)
     args = parser.parse_args()
 
-    study = optuna.create_study()
-    study.optimize(
-        partial(objective, max_epochs=args.max_epochs, unfreeze_epoch=args.unfreeze_epoch),
-        n_trials=10,
-        gc_after_trial=True,
-    )
+    study = optuna.create_study(study_name=f"optuna_flash_{datetime.now()}")
+    study.optimize(partial(objective, max_epochs=args.max_epochs), n_trials=args.trials, gc_after_trial=True)
 
     # Save the study to a Pandas DataFrame
-    STUDY_PATH = os.path.join(OUTPUT_FOLDER_PATH, f"{study._study_id}")
+    STUDY_PATH = os.path.join(OUTPUT_FOLDER_PATH, f"{study.study_name}")
     if not os.path.exists(STUDY_PATH):
         os.mkdir(STUDY_PATH)
+
+    best_params = study.best_params
+    with open(os.path.join(STUDY_PATH, "best_params.json"), "w") as f:
+        f.write(json.dumps(best_params))
 
     trials_df: pd.DataFrame = study.trials_dataframe()
     trials_df.to_csv(path=os.path.join(STUDY_PATH, f"all_trials.csv"))
