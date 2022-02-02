@@ -1,6 +1,5 @@
 torch>=1.10.0
 pytorch-lightning==1.4.9
 lightning-flash==0.5.2
-wandb
 optuna
 plotly>=4.0.0
