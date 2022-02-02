@@ -1,10 +1,10 @@
 import gc
 import json
 import os
-from argparse import ArgumentParser
 from datetime import datetime
 from functools import partial
 
+import fire
 import optuna
 import pandas as pd
 import pytorch_lightning as pl
@@ -20,6 +20,8 @@ from src import OUTPUT_FOLDER_PATH, RANDOM_SEED, TRAIN_DATA_PATH, VAL_DATA_PATH
 def objective(
     trial: optuna.Trial,
     max_epochs: int = 5,
+    path_train_data: str = TRAIN_DATA_PATH,
+    path_val_data: str = VAL_DATA_PATH,
 ):
 
     # A unique set of hyperparameter combination is sampled.
@@ -30,11 +32,10 @@ def objective(
 
     pl.seed_everything(RANDOM_SEED)
 
-    # Setup the machine learning pipeline with the new set
-    # of hyperparameters.
-    datamodule = QuestionAnsweringData.from_csv(
-        train_file=TRAIN_DATA_PATH,
-        val_file=VAL_DATA_PATH,
+    # Setup the machine learning pipeline with the new set of hyperparameters.
+    dm = QuestionAnsweringData.from_csv(
+        train_file=path_train_data,
+        val_file=path_val_data,
         backbone=backbone,
         batch_size=batch_size,
     )
@@ -49,44 +50,44 @@ def objective(
 
     # Train the model for Optuna to understand the current
     # Hyperparameter combination's behaviour.
-    trainer.fit(model, datamodule)
+    trainer.fit(model, dm)
 
     # The extra step to tell Optuna which value to base the
     # optimization routine on.
     value = trainer.callback_metrics["val_loss"].item()
 
-    del datamodule, model, trainer
+    del dm, model, trainer
     gc.collect()
     torch.cuda.empty_cache()
 
     return value
 
 
-if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument("-t", "--trials", type=int, default=1, required=False)
-    parser.add_argument("-e", "--epochs", type=int, default=5, required=False)
-    args = parser.parse_args()
+def main(trials: int = 1, epochs: int = 5, output_folder: str = OUTPUT_FOLDER_PATH):
 
     study = optuna.create_study(study_name=f"optuna_flash_{datetime.now()}")
-    study.optimize(partial(objective, max_epochs=args.max_epochs), n_trials=args.trials, gc_after_trial=True)
+    study.optimize(partial(objective, max_epochs=epochs), n_trials=trials, gc_after_trial=True)
 
     # Save the study to a Pandas DataFrame
-    STUDY_PATH = os.path.join(OUTPUT_FOLDER_PATH, f"{study.study_name}")
-    if not os.path.exists(STUDY_PATH):
-        os.mkdir(STUDY_PATH)
+    study_path = os.path.join(output_folder, f"{study.study_name}")
+    if not os.path.exists(study_path):
+        os.mkdir(study_path)
 
     best_params = study.best_params
-    with open(os.path.join(STUDY_PATH, "best_params.json"), "w") as f:
+    with open(os.path.join(study_path, "best_params.json"), "w") as f:
         f.write(json.dumps(best_params))
 
     trials_df: pd.DataFrame = study.trials_dataframe()
-    trials_df.to_csv(path=os.path.join(STUDY_PATH, "all_trials.csv"))
+    trials_df.to_csv(path=os.path.join(study_path, "all_trials.csv"))
 
     # Save the plots of the Study
     if optuna.visualization.is_available():
         parallel_coordinate_fig: Figure = optuna.visualization.plot_parallel_coordinate(study, params=["x", "y"])
-        parallel_coordinate_fig.write_image(os.path.join(STUDY_PATH, "plot_parallel_coordinate.jpeg"))
+        parallel_coordinate_fig.write_image(os.path.join(study_path, "plot_parallel_coordinate.jpeg"))
 
         param_importances_fig: Figure = optuna.visualization.plot_param_importances(study)
-        param_importances_fig.write_image(os.path.join(STUDY_PATH, "param_importances.jpeg"))
+        param_importances_fig.write_image(os.path.join(study_path, "param_importances.jpeg"))
+
+
+if __name__ == "__main__":
+    fire.Fire(main)

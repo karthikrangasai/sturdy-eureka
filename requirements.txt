@@ -3,3 +3,4 @@ pytorch-lightning==1.4.9
 lightning-flash==0.5.2
 optuna
 plotly>=4.0.0
+fire
