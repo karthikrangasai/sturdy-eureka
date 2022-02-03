@@ -44,7 +44,7 @@ def train(
 
 
 def main(epochs: int = 1, study_name: str = None, output_folder: str = OUTPUT_FOLDER_PATH):
-    train_args = {"max_epochs": epochs, "study_name": study_name}
+    train_args = {"max_epochs": epochs}
 
     if study_name is not None:
         study_path = os.path.join(output_folder, f"{study_name}")
