@@ -50,8 +50,7 @@ def main(epochs: int = 1, study_name: str = None, output_folder: str = OUTPUT_FO
         study_path = os.path.join(output_folder, f"{study_name}")
         with open(os.path.join(study_path, "best_params.json")) as fp:
             best_params = json.load(fp)
-
-    train_args.update(best_params)
+        train_args.update(best_params)
 
     train(**train_args)
 
