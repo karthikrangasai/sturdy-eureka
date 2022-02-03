@@ -20,15 +20,17 @@ from src import OUTPUT_FOLDER_PATH, RANDOM_SEED, TRAIN_DATA_PATH, VAL_DATA_PATH
 def objective(
     trial: optuna.Trial,
     max_epochs: int = 5,
+    gpus: int = torch.cuda.device_count(),
+    batch_size: int = 2,
+    accumulate_grad_batches: int = 2,
     path_train_data: str = TRAIN_DATA_PATH,
     path_val_data: str = VAL_DATA_PATH,
 ):
 
     # A unique set of hyperparameter combination is sampled.
-    learning_rate = trial.suggest_uniform("learning_rate", 1e-5, 5e-4)
-    batch_size = trial.suggest_categorical("batch_size", [2, 4, 8])
+    learning_rate = trial.suggest_uniform("learning_rate", 5e-6, 1e-4)
     backbone = trial.suggest_categorical("backbone", ["xlm-roberta-base", "bert-base-multilingual-uncased"])
-    optimizer = trial.suggest_categorical("optimizer", ["adam", "adamw"])
+    optimizer = trial.suggest_categorical("optimizer", ["adam", "adamw", "sgd"])
 
     pl.seed_everything(RANDOM_SEED)
 
@@ -46,7 +48,7 @@ def objective(
         optimizer=optimizer,
     )
 
-    trainer = Trainer(max_epochs=max_epochs, gpus=torch.cuda.device_count(), accumulate_grad_batches=2)
+    trainer = Trainer(max_epochs=max_epochs, gpus=gpus, accumulate_grad_batches=accumulate_grad_batches)
 
     # Train the model for Optuna to understand the current
     # Hyperparameter combination's behaviour.
@@ -63,10 +65,24 @@ def objective(
     return value
 
 
-def main(trials: int = 1, epochs: int = 5, output_folder: str = OUTPUT_FOLDER_PATH):
+def main(
+    trials: int = 1,
+    epochs: int = 5,
+    gpus: int = torch.cuda.device_count(),
+    batch_size: int = 2,
+    accumulate_grad_batches: int = 2,
+    output_folder: str = OUTPUT_FOLDER_PATH,
+):
 
     study = optuna.create_study(study_name=f"optuna_flash_{datetime.now()}")
-    study.optimize(partial(objective, max_epochs=epochs), n_trials=trials, gc_after_trial=True)
+    adjusted_objective = partial(
+        objective,
+        max_epochs=epochs,
+        gpus=gpus,
+        batch_size=batch_size,
+        accumulate_grad_batches=accumulate_grad_batches,
+    )
+    study.optimize(adjusted_objective, n_trials=trials, gc_after_trial=True)
 
     # Save the study to a Pandas DataFrame
     study_path = os.path.join(output_folder, f"{study.study_name}")
