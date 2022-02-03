@@ -9,8 +9,6 @@ from flash.text import QuestionAnsweringData, QuestionAnsweringTask
 
 from src import OUTPUT_FOLDER_PATH, RANDOM_SEED, TRAIN_DATA_PATH, VAL_DATA_PATH
 
-pl.seed_everything(RANDOM_SEED)
-
 
 def train(
     max_epochs: int = 5,
@@ -19,6 +17,7 @@ def train(
     learning_rate: float = 1e-5,
     batch_size: int = 2,
     accumulate_grad_batches: int = 2,
+    gpus: int = torch.cuda.device_count(),
     path_train_data: str = TRAIN_DATA_PATH,
     path_val_data: str = VAL_DATA_PATH,
 ):
@@ -36,15 +35,28 @@ def train(
     )
 
     trainer = Trainer(
-        gpus=torch.cuda.device_count(),
+        gpus=gpus,
         max_epochs=max_epochs,
         accumulate_grad_batches=accumulate_grad_batches,
     )
     trainer.fit(model, datamodule=datamodule)
 
 
-def main(epochs: int = 1, study_name: str = None, output_folder: str = OUTPUT_FOLDER_PATH):
-    train_args = {"max_epochs": epochs}
+def main(
+    epochs: int = 1,
+    study_name: str = None,
+    gpus: int = torch.cuda.device_count(),
+    batch_size: int = 2,
+    accumulate_grad_batches: int = 2,
+    output_folder: str = OUTPUT_FOLDER_PATH,
+):
+    pl.seed_everything(RANDOM_SEED)
+    train_args = {
+        "max_epochs": epochs,
+        "batch_size": batch_size,
+        "accumulate_grad_batches": accumulate_grad_batches,
+        "gpus": gpus,
+    }
 
     if study_name is not None:
         study_path = os.path.join(output_folder, f"{study_name}")
