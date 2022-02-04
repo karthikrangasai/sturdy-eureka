@@ -82,7 +82,7 @@ def main(
         batch_size=batch_size,
         accumulate_grad_batches=accumulate_grad_batches,
     )
-    study.optimize(adjusted_objective, n_trials=trials, gc_after_trial=True)
+    study.optimize(adjusted_objective, n_trials=trials, gc_after_trial=True, show_progress_bar=True)
 
     # Save the study to a Pandas DataFrame
     study_path = os.path.join(output_folder, f"{study.study_name}")
@@ -94,7 +94,7 @@ def main(
         f.write(json.dumps(best_params))
 
     trials_df: pd.DataFrame = study.trials_dataframe()
-    trials_df.to_csv(path=os.path.join(study_path, "all_trials.csv"))
+    trials_df.to_csv(os.path.join(study_path, "all_trials.csv"))
 
     # Save the plots of the Study
     if optuna.visualization.is_available():
