@@ -21,7 +21,7 @@ def objective(
     trial: optuna.Trial,
     max_epochs: int = 5,
     gpus: int = torch.cuda.device_count(),
-    batch_size: int = 2,
+    batch_size: int = 32,
     accumulate_grad_batches: int = 2,
     path_train_data: str = TRAIN_DATA_PATH,
     path_val_data: str = VAL_DATA_PATH,
@@ -66,10 +66,10 @@ def objective(
 
 
 def main(
-    trials: int = 1,
-    epochs: int = 5,
+    trials: int = 2,
+    epochs: int = 3,
     gpus: int = torch.cuda.device_count(),
-    batch_size: int = 2,
+    batch_size: int = 6,
     accumulate_grad_batches: int = 2,
     output_folder: str = OUTPUT_FOLDER_PATH,
 ):
@@ -98,7 +98,7 @@ def main(
 
     # Save the plots of the Study
     if optuna.visualization.is_available():
-        parallel_coordinate_fig: Figure = optuna.visualization.plot_parallel_coordinate(study, params=["x", "y"])
+        parallel_coordinate_fig: Figure = optuna.visualization.plot_parallel_coordinate(study, params=["learning_rate", "backbone", "optimizer"])
         parallel_coordinate_fig.write_image(os.path.join(study_path, "plot_parallel_coordinate.jpeg"))
 
         param_importances_fig: Figure = optuna.visualization.plot_param_importances(study)

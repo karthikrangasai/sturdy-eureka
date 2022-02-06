@@ -5,3 +5,4 @@ optuna
 plotly>=4.0.0
 fire
 huggingface-hub>=0.2
+kaleido
